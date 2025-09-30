@@ -1,7 +1,8 @@
+# disko.nix
 {
   disko.devices = {
     disk.main = {
-      device = "/dev/nvme0n1";
+      device = "/dev/disk/by-id/REPLACE_ME";
       type = "disk";
       content = {
         type = "gpt";
@@ -14,35 +15,56 @@
               type = "filesystem";
               format = "vfat";
               mountpoint = "/boot/efi";
-              mountOptions = ["umask=0077"];
+              mountOptions = [ "umask=0077" ];
             };
           };
-          nix = {
+
+          crypt = {
+            name = "niflheim_crypt";
             size = "100%";
             content = {
               type = "luks";
               name = "niflheim";
               settings = {
                 allowDiscards = true;
-                keyFile = "/etc/secrets/initrd/keyfile.bin";
               };
               content = {
-                type = "filesystem";
-                format = "ext4";
-                mountpoint = "/nix";
+                type = "lvm_pv";
+                vg = "vg_niflheim";
               };
             };
           };
         };
       };
     };
+
+    lvm_vg.vg_niflheim = {
+      type = "lvm_vg";
+      lvs = {
+        lv_boot = {
+          size = "1G";
+          content = {
+            type = "filesystem";
+            format = "ext4";
+            mountpoint = "/boot";
+            mountOptions = [ "noatime" ];
+          };
+        };
+        lv_nix = {
+          size = "100%";
+          content = {
+            type = "filesystem";
+            format = "ext4";
+            mountpoint = "/nix";
+            mountOptions = [ "noatime" ];
+          };
+        };
+      };
+    };
+
     nodev."/" = {
       fsType = "tmpfs";
-      mountOptions = [
-        "size=8G"
-        "defaults"
-        "mode=755"
-      ];
+      mountOptions = [ "defaults" "mode=755" "size=8G" ];
     };
   };
 }
